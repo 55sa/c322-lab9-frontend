@@ -9,56 +9,89 @@
   </head>
   <body>
     <ul class="topnav">
-      <li><a class="active" href="index.html">Home</a></li>
+      <li><a  href="index.html">Home</a></li>
       <li><a href="add.html">Add ducks</a></li>        
       <li><a href="search.html">Search ducks</a></li>
-      <li><a href="pond.html">Pond</a></li>
+      <li><a class="active" href="pond.html">Pond</a></li>
       <li class="right"><a  href="login.html">Login</a></li>
     </ul>
 
     <div id="pond"></div>
+    <script src="configuration.js"></script>
 
     <script>
-      let host = "http://localhost:8080";
+      let apiHost = configuration.host();
       let ducks = [];
       displayTheDucks();
-
+    
       async function getAll() {
-        let response = await fetch(host + "/ducks");
+        const headers = { 'Authorization': `Bearer ${configuration.token()}` };
+    
+        let response = await fetch(apiHost + "/ducks", { headers });
+    
         let result = await response.json();
         return result;
       }
-
+    
+      async function fetchImageAsDataUrl(apiHost, duckId, token) {
+        const headers = {
+          'Authorization': `Bearer ${token}`
+        };
+        const response = await fetch(`${apiHost}/ducks/${duckId}/image`, { headers });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch image');
+        }
+        
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+    
       async function displayTheDucks() {
         if (ducks.length == 0) {
           ducks = await getAll();
         }
-
+    
         let pond = document.getElementById("pond");
         pond.innerHTML = "";
-
-        for (let duck of ducks) {
+    
+        ducks.forEach(duck => {
           let div = document.createElement("div");
           div.className = "flip-card";
-          let innerHtml = `
-            <div class="flip-card-inner">
-              <div class="flip-card-front">
-               <img
-                   src="${host}/ducks/${duck.id}/image"
-                   alt="Duck"
-                   style="width: 100%"
-                />
-              </div>
-              <div class="flip-card-back">
-                <h1>${duck.name}</h1>
-                <p>${duck.type}</p>
-               </div>
+    
+          fetchImageAsDataUrl(apiHost, duck.id, configuration.token())
+            .then(dataUrl => {
+              div.innerHTML = generateCardHtml(duck, dataUrl);
+              pond.appendChild(div);
+            })
+            .catch(error => {
+              console.error('Failed to load duck image', error);
+              // Display the card with a default image or no image
+              div.innerHTML = generateCardHtml(duck, "path/to/default/image.png"); // Specify the path to a default image
+              pond.appendChild(div);
+            });
+        });
+      }
+    
+      function generateCardHtml(duck, imageUrl) {
+        return `
+          <div class="flip-card-inner">
+            <div class="flip-card-front">
+             <img src="${imageUrl}" alt="Duck" style="width: 100%" />
             </div>
-            `;
-          div.innerHTML = innerHtml;
-          pond.appendChild(div);
-        }
+            <div class="flip-card-back">
+              <h1>${duck.name}</h1>
+              <p>${duck.type}</p>
+             </div>
+          </div>
+        `;
       }
     </script>
+    
   </body>
 </html>

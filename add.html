@@ -8,8 +8,8 @@
   </head>
   <body>
     <ul class="topnav">
-      <li><a class="active" href="index.html">Home</a></li>
-      <li><a href="add.html">Add ducks</a></li>        
+      <li><a  href="index.html">Home</a></li>
+      <li><a class="active" href="add.html">Add ducks</a></li>        
       <li><a href="search.html">Search ducks</a></li>
       <li><a href="pond.html">Pond</a></li>
       <li class="right"><a  href="login.html">Login</a></li>
@@ -23,8 +23,9 @@
       <input type="file" id="imageInput" />
       <button onclick="addTheDuck()">Add the duck</button>
     </div>
+    <script src="configuration.js"></script>
     <script>
-      let host = "http://localhost:8080";
+      let apiHost = getHost();
           async function addTheDuck() {
               let message = "";
                 let duckName = document.getElementById("name").value;
@@ -42,11 +43,12 @@
                 let request = {
                   method: "POST",
                   headers: {
-                      "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    'Authorization': `Bearer ${configuration.token()}`
                   },
                   body: JSON.stringify(duck)
                 };
-                let response = await fetch(host + "/ducks", request);
+                let response = await fetch(apiHost + "/ducks", request);
                 if(response.status == 200) {
                   let id = await response.json();
                   let result = await submitTheImage(id);
@@ -67,10 +69,14 @@
                 let formData = new FormData();
                 formData.append("file", imageInput.files[0]);
                 let request = {
-                  method: "POST",
-                  body: formData
-                };
-                let response = await fetch(host + "/ducks/" + duckId + "/image", request);
+  method: "POST",
+  headers: {
+    'Authorization': `Bearer ${configuration.token()}`
+  },
+  body: formData
+};
+
+                let response = await fetch(apiHost + "/ducks/" + duckId + "/image", request);
                 let result = await response.json();
                 return result;
 
